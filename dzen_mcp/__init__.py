@@ -1,0 +1,1 @@
+"""Yandex Dzen MCP package."""

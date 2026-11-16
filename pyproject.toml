@@ -1,0 +1,13 @@
+[project]
+name = "dzen-mcp"
+version = "0.1.0"
+description = "Local MCP server for automating publications on Yandex Dzen (dzen.ru/profile/editor) using FastMCP and Playwright"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "playwright>=1.48.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"

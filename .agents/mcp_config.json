@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dzen-mcp": {
+      "command": "d:\\dzen-mcp\\.venv\\Scripts\\python.exe",
+      "args": [
+        "d:\\dzen-mcp\\server.py"
+      ]
+    }
+  }
+}
