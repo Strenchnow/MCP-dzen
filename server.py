@@ -26,6 +26,14 @@ from dzen_mcp.selectors import SELECTORS, URLS
 BASE_DIR = Path(__file__).resolve().parent
 PROFILE_DIR = BASE_DIR / "dzen_profile"
 EXPORTS_DIR = BASE_DIR / "exports"
+KNOWLEDGE_DIR = BASE_DIR / "knowledge"
+PROMPTS_DIR = BASE_DIR / "prompts"
+
+
+def _ensure_workspace_dirs() -> None:
+    """Create required runtime directories relative to BASE_DIR if missing."""
+    for directory in (PROFILE_DIR, EXPORTS_DIR, KNOWLEDGE_DIR, PROMPTS_DIR):
+        directory.mkdir(parents=True, exist_ok=True)
 
 REALISTIC_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -70,7 +78,7 @@ async def _open_dzen_context(headless: bool) -> AsyncIterator[tuple[BrowserConte
         )
 
     async with _CONTEXT_LOCK:
-        PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+        _ensure_workspace_dirs()
         _cleanup_stale_profile_locks()
         pw: Playwright = await async_playwright().start()
         context: BrowserContext | None = None
@@ -277,19 +285,19 @@ def _parse_inline_formatting(text: str) -> list[tuple[str, bool, bool]]:
 
 
 async def _type_formatted_text(page: Page, text: str) -> None:
-    """Insert inline-formatted text quickly using insert_text and Ctrl+B / Ctrl+I toggles."""
+    """Insert inline-formatted text quickly using insert_text and Ctrl/Cmd+B / Ctrl/Cmd+I toggles."""
     for segment, is_bold, is_italic in _parse_inline_formatting(text):
         if not segment:
             continue
         if is_bold:
-            await page.keyboard.press("Control+b")
+            await page.keyboard.press("ControlOrMeta+b")
         if is_italic:
-            await page.keyboard.press("Control+i")
+            await page.keyboard.press("ControlOrMeta+i")
         await page.keyboard.insert_text(segment)
         if is_italic:
-            await page.keyboard.press("Control+i")
+            await page.keyboard.press("ControlOrMeta+i")
         if is_bold:
-            await page.keyboard.press("Control+b")
+            await page.keyboard.press("ControlOrMeta+b")
 
 
 async def _type_markdown_content(page: Page, content: str) -> None:
@@ -687,6 +695,7 @@ async def dump_channel_articles(
     if days <= 0:
         raise ValueError("days must be a positive integer.")
 
+    _ensure_workspace_dirs()
     clean_slug = _normalize_channel_slug(slug)
     target_dir = Path(output_dir).expanduser().resolve() if output_dir else EXPORTS_DIR
     target_dir.mkdir(parents=True, exist_ok=True)

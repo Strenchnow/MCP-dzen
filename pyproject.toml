@@ -1,12 +1,18 @@
 [project]
 name = "dzen-mcp"
-version = "0.1.0"
-description = "Local MCP server for automating publications on Yandex Dzen (dzen.ru/profile/editor) using FastMCP and Playwright"
+version = "1.0.0"
+description = "Cross-platform MCP Server & Agent Skill for Yandex Dzen competitor analytics, anti-slop writing, and studio publishing"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
     "mcp[cli]>=1.0.0",
     "playwright>=1.48.0",
 ]
+
+[tool.setuptools]
+packages = ["dzen_mcp"]
+py-modules = ["server"]
 
 [build-system]
 requires = ["setuptools>=68.0"]

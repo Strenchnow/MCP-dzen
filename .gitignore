@@ -11,15 +11,22 @@ __pycache__/
 *$py.class
 .pytest_cache/
 *.egg-info/
-dist/
 build/
+
+# Release artifacts & generated local config
+dist/
+mcp_config_snippet.json
 
 # Generated exports, knowledge & media
 exports/
 knowledge/
 *.png
+*.txt
 
 # Temporary / test scripts
 tmp_*
 test_*.py
+fetch_refs.py
+analyze.py
+article.md
 scratch/

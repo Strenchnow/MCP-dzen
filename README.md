@@ -1,114 +1,97 @@
-# dzen-mcp
+# Yandex Dzen Autopilot (`dzen-mcp`)
 
-Локальный MCP-сервер на Python (`FastMCP` / `MCPServer` + `Playwright` async API) для автоматизации публикаций и аналитики каналов в **Яндекс Дзен** (`Дзен-студия`).
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-000000?logo=anthropic&logoColor=white)](https://modelcontextprotocol.io/)
+[![Playwright](https://img.shields.io/badge/Playwright-Chromium-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Возможности (MCP-инструменты)
+**Agent Skill + Local MCP Server for end-to-end Yandex Dzen content automation: competitor scraping, title pattern reverse-engineering, anti-slop editorial style extraction, and rich-formatted publishing directly to Dzen Studio.**
 
-1. **`login_dzen(timeout_seconds: int = 150)`**
-   Открывает видимое окно Chromium (`headless=False`), переходит на `https://dzen.ru`, отслеживает авторизацию (Яндекс ID / VK ID) и проверяет доступ к Дзен-студии. Сохраняет cookies и профиль браузера в `./dzen_profile` для последующих фоновых запусков.
+---
 
-2. **`create_dzen_article(title: str, content: str, image_path: str | None = None, publish: bool = False, headless: bool = True)`**
-   Создаёт статью в Дзен-студии.
-   - Поддерживает Markdown-вёрстку для редактора Дзена (Draft.js):
-     - `## Заголовок` → подзаголовок `H2`
-     - `> Цитата` → блок-цитата (`blockquote`)
-     - `- Пункт` / `* Пункт` → маркированный список (`ul/li`)
-     - `**жирный**` и `*курсив*` → переключение через `Ctrl+B` / `Ctrl+I`
-   - Быстро вставляет длинные фрагменты текста через `keyboard.insert_text`, дожидается статуса автосохранения «Сохранено» и сохраняет черновик (`publish=False`) либо публикует статью (`publish=True`).
-   - При передаче локального пути `image_path` загружает изображение через боковое меню `+` редактора и ждёт появления `<img>`.
+## English Overview (for Agensi.io & International Users)
 
-3. **`create_dzen_post(text: str, image_paths: list[str] | None = None, publish: bool = False, headless: bool = True)`**
-   Создаёт короткий «Пост» в Дзен-студии, при необходимости прикрепляет локальные изображения `image_paths` и сохраняет черновик или публикует.
+`yandex-dzen-autopilot` (`dzen-mcp`) turns any MCP-compatible AI agent (Claude Code, Cursor, Antigravity, Windsurf, VS Code Copilot) into a full-stack Yandex Dzen editorial pipeline:
 
-4. **`dump_channel_articles(slug: str, days: int = 60, output_dir: str | None = None)`**
-   Выгружает список статей и просмотров **любого публичного канала Дзена** (поддерживает как `worldlord`, так и `id/<hex>`).
-   - Работает в **отдельном изолированном браузере** без `dzen_profile` (не блокирует основную сессию студии и не использует ваш аккаунт).
-   - Читает хронологическую вкладку `article` из `/api/v3/launcher/export` с фильтрацией по дате из `publication_object_id`.
-   - Сохраняет файл `<slug>_статьи_<days>дней.txt` в папку `./exports/` (формат `Заголовок = просмотры`) и возвращает сводку с топ-5 самых популярных заголовков.
+- **Competitor Intelligence (`dump_channel_articles`)**: Scrapes any public Dzen channel's chronological `article` feed in an isolated headless Chromium instance (never touching your logged-in profile) and exports `Title = views` rankings.
+- **Title Map & Style Engine (`prompts/`)**: Two battle-tested editorial prompts (`02_Карта-заголовков.md` and `03_Сборщик-системы.md`) reverse-engineer competitor hooks, rhythm metrics, and niche vocabulary into a 3-file editorial system (`ИНСТРУКЦИЯ.md`, `СТИЛЬ.md`, `СТРУКТУРА.md`).
+- **Anti-Slop Native Publishing (`create_dzen_article` / `create_dzen_post`)**: Writes directly into Dzen Studio's Draft.js / Quill editors with real `H2` headings, blockquotes, bullet lists, bold/italic formatting, optional local image upload, and verified autosave confirmation (`Сохранено`).
+- **Session Persistence & Safety (`login_dzen`)**: Uses a local `./dzen_profile` with anti-detection flags (`--disable-blink-features=AutomationControlled`) and defaults to saving drafts (`publish=False`).
 
-## Структура проекта
+---
 
-- `server.py` — MCP-сервер и реализация всех 4 инструментов.
-- `dzen_mcp/selectors.py` — вынесенные CSS/XPath-селекторы Дзен-студии (удобно обновлять при изменении вёрстки).
-- `prompts/` — промпты аналитики заголовков (`02_Карта-заголовков.md`) и сборки редполитики (`03_Сборщик-системы.md`).
-- `GEMINI.md` — регламент работы ИИ-агента с контентом и пайплайн подготовки статей.
-- `pyproject.toml` — метаданные и зависимости (`mcp[cli]`, `playwright`).
+## Архитектура пайплайна
 
-## Установка
+```mermaid
+flowchart LR
+    A["Competitor Channel (dzen.ru/slug)"] --> B["Scraper (dump_channel_articles)"]
+    B --> C["Title Map (prompts/02_Карта-заголовков.md)"]
+    C --> D["Style Engine (prompts/03_Сборщик-системы.md)"]
+    D --> E["Anti-Slop Writer (SKILL.md + GEMINI.md)"]
+    E --> F["Dzen Studio Draft (create_dzen_article)"]
+```
 
-Требуется Python **3.10+**.
+---
 
-### Вариант 1: через `uv`
+## Quick Start (2 минуты)
 
+### Windows
+```bat
+git clone https://github.com/Strenchnow/MCP-dzen.git
+cd MCP-dzen
+install.bat
+```
+
+### macOS / Linux
 ```bash
 git clone https://github.com/Strenchnow/MCP-dzen.git
 cd MCP-dzen
-
-uv venv .venv
-# Windows PowerShell:
-.venv\Scripts\Activate.ps1
-# macOS / Linux:
-# source .venv/bin/activate
-
-uv pip install "mcp[cli]" playwright
-uv run playwright install chromium
+chmod +x install.sh
+./install.sh
 ```
 
-### Вариант 2: через стандартный `.venv`
+Скрипт сам создаст `.venv`, установит `mcp[cli]` и `playwright`, скачает Chromium, выведет готовый JSON-блок для вашего `mcp_config.json` и сохранит его в `mcp_config_snippet.json`.
 
-```bash
-git clone https://github.com/Strenchnow/MCP-dzen.git
-cd MCP-dzen
+### Подключение к MCP-клиенту
+1. Скопируйте содержимое `mcp_config_snippet.json` в ваш конфиг:
+   - Проектный: `.agents/mcp_config.json`
+   - Глобальный: `~/.gemini/config/mcp_config.json` (или конфиг Claude Code / Cursor / Windsurf).
+2. Нажмите **Refresh** (или перезапустите MCP-сервер в настройках клиента).
+3. Выполните первичный вход: попросите агента вызвать `login_dzen`.
 
-python -m venv .venv
-# Windows PowerShell:
-.\.venv\Scripts\Activate.ps1
-# macOS / Linux:
-# source .venv/bin/activate
+---
 
-pip install --upgrade pip
-pip install "mcp[cli]" playwright
-playwright install chromium
-```
+## MCP-инструменты
 
-## Подключение к MCP-клиенту (`mcp_config.json`)
+| Инструмент | Параметры | Описание | Пример промпта |
+|---|---|---|---|
+| `login_dzen` | `timeout_seconds: int = 150` | Открывает Chromium (`headless=False`) для входа через Яндекс ID / VK ID, проверяет доступ к Студии и сохраняет сессию в `./dzen_profile`. | «Вызови `login_dzen`, чтобы я вошёл в Дзен-студию.» |
+| `dump_channel_articles` | `slug: str`, `days: int = 60`, `output_dir: str \| None = None` | В чистом изолированном браузере выгружает статьи и просмотры чужого канала (`worldlord` или `id/...`) за N дней в `./exports/` и возвращает топ-5. | «Выгрузи статьи канала `worldlord` за 30 дней и собери карту заголовков.» |
+| `create_dzen_article` | `title: str`, `content: str`, `image_path: str \| None = None`, `publish: bool = False`, `headless: bool = True` | Создаёт статью в Дзен-студии с вёрсткой (`## `, `> `, `- `, `**жирный**`, `*курсив*`), ждёт статуса «Сохранено» и сохраняет черновик или публикует. | «Напиши статью по нашему стилю и сохрани в черновики без картинок.» |
+| `create_dzen_post` | `text: str`, `image_paths: list[str] \| None = None`, `publish: bool = False`, `headless: bool = True` | Создаёт короткий пост в Дзен-студии, прикрепляет локальные фото (если переданы) и сохраняет черновик или публикует. | «Сделай короткий пост-анонс для Дзена и сохрани как черновик.» |
 
-Добавьте блок в проектный `.agents/mcp_config.json` или глобальный `~/.gemini/config/mcp_config.json` (укажите абсолютный путь к Python из `.venv` и к `server.py`):
+---
 
-**Windows:**
-```json
-{
-  "mcpServers": {
-    "dzen-mcp": {
-      "command": "D:\\dzen-mcp\\.venv\\Scripts\\python.exe",
-      "args": [
-        "D:\\dzen-mcp\\server.py"
-      ]
-    }
-  }
-}
-```
+## Регламент качества (Anti-Slop & Dzen Rules)
 
-**macOS / Linux:**
-```json
-{
-  "mcpServers": {
-    "dzen-mcp": {
-      "command": "/path/to/MCP-dzen/.venv/bin/python",
-      "args": [
-        "/path/to/MCP-dzen/server.py"
-      ]
-    }
-  }
-}
-```
+Проект поставляется со стандартизированным скиллом [SKILL.md](SKILL.md) и правилами [GEMINI.md](GEMINI.md):
+- **Никаких ИИ-картинок:** обложки не генерируются (Дзен пессимизирует ИИ-иллюстрации); `image_path` используется только для локальных файлов пользователя.
+- **Типографика Дзена:** длинное тире `—` запрещено, кавычки только «ёлочки», короткие абзацы (1–2 предложения), живой ритм без канцелярита («однако», «стоит отметить», «является», «в современном мире»).
+- **Безопасный режим:** все публикации по умолчанию уходят в черновики (`publish=False`).
 
-## Первый запуск
+---
 
-1. Перезапустите / обновите (`Refresh`) MCP-сервер в настройках клиента.
-2. Вызовите инструмент `login_dzen` и войдите в свой аккаунт Яндекса в открывшемся окне Chromium.
-3. После сохранения профиля можно вызывать `create_dzen_article`, `create_dzen_post` и `dump_channel_articles` в режиме `headless=True`.
+## Troubleshooting
 
-## Безопасность
+- **Ошибка блокировки профиля (`Browser profile ... is currently locked` / `ProcessSingleton`)**
+  Профиль `./dzen_profile` может использоваться только одним окном Chromium одновременно. Закройте открытое окно браузера (например, после `login_dzen` или отладочного запуска с `headless=False`) и повторите вызов.
+- **Изменения в `server.py` или `selectors.py` не применяются / не видно новый инструмент**
+  Нажмите кнопку **Refresh** рядом с `dzen-mcp` в настройках MCP-клиента (или перезапустите IDE), чтобы перезапустить процесс Python-сервера.
+- **Ошибка `Could not find element '<group>.<key>'`**
+  Яндекс Дзен обновил вёрстку Студии. Все CSS/XPath-селекторы вынесены в [dzen_mcp/selectors.py](dzen_mcp/selectors.py) — достаточно обновить нужный массив селекторов без правки логики `server.py`.
+- **Выгрузка `dump_channel_articles` вернула ошибку капчи/редиректа**
+  Подождите 1–2 минуты и повторите запрос (между страницами уже встроена пауза 300 мс).
 
-Папка `dzen_profile/` хранит cookies и активную сессию вашего аккаунта Дзен. Она добавлена в `.gitignore` — **никогда не публикуйте её в репозиторий**.
+## Лицензия
+
+Распространяется под лицензией [MIT](LICENSE).
